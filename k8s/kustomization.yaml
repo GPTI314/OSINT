@@ -1,0 +1,51 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: osint
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - pvc.yaml
+  - rbac.yaml
+  - statefulset-postgres.yaml
+  - statefulset-redis.yaml
+  - statefulset-elasticsearch.yaml
+  - service-postgres.yaml
+  - service-redis.yaml
+  - service-elasticsearch.yaml
+  - deployment-backend.yaml
+  - deployment-worker.yaml
+  - deployment-frontend.yaml
+  - service-backend.yaml
+  - service-frontend.yaml
+  - network-policy.yaml
+  - hpa.yaml
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/name: osint
+  app.kubernetes.io/part-of: osint-toolkit
+
+images:
+  - name: osint/backend
+    newTag: latest
+  - name: osint/worker
+    newTag: latest
+  - name: osint/frontend
+    newTag: latest
+
+configMapGenerator:
+  - name: osint-build-info
+    literals:
+      - VERSION=1.0.0
+      - BUILD_DATE=2024-01-01
+
+replicas:
+  - name: osint-backend
+    count: 3
+  - name: osint-frontend
+    count: 2
+  - name: osint-worker
+    count: 2

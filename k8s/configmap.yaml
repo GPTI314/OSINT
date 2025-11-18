@@ -1,0 +1,169 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: osint-config
+  namespace: osint
+  labels:
+    app: osint
+data:
+  # Application Configuration
+  log-level: "info"
+  workers: "4"
+  debug: "false"
+
+  # Service URLs
+  elasticsearch-url: "http://elasticsearch:9200"
+  postgres-host: "postgres"
+  postgres-port: "5432"
+  redis-host: "redis"
+  redis-port: "6379"
+
+  # Nginx Configuration
+  nginx-host: "osint.example.com"
+  nginx-port: "80"
+
+  # API Configuration
+  api-host: "0.0.0.0"
+  api-port: "8000"
+
+  # CORS
+  cors-origins: "https://osint.example.com,https://www.osint.example.com"
+
+  # JWT
+  jwt-algorithm: "HS256"
+  access-token-expire-minutes: "30"
+
+  # Monitoring
+  prometheus-port: "9090"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: osint-app-config
+  namespace: osint
+  labels:
+    app: osint
+data:
+  app.conf: |
+    # Application configuration file
+    [app]
+    name = OSINT Toolkit
+    version = 1.0.0
+
+    [features]
+    enable_analytics = true
+    enable_monitoring = true
+    enable_caching = true
+
+    [limits]
+    max_upload_size = 20971520
+    rate_limit = 100
+    timeout = 300
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: osint
+  labels:
+    app: osint-frontend
+data:
+  nginx.conf: |
+    user nginx-user;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+
+    events {
+        worker_connections 2048;
+        use epoll;
+        multi_accept on;
+    }
+
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log /var/log/nginx/access.log main;
+
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        client_max_body_size 20M;
+
+        gzip on;
+        gzip_vary on;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types text/plain text/css text/xml text/javascript
+                   application/json application/javascript application/xml+rss
+                   application/rss+xml font/truetype font/opentype
+                   application/vnd.ms-fontobject image/svg+xml;
+
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+        include /etc/nginx/conf.d/*.conf;
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-default-config
+  namespace: osint
+  labels:
+    app: osint-frontend
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+
+        location /api/ {
+            proxy_pass http://osint-backend:8000/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_cache_bypass $http_upgrade;
+            proxy_read_timeout 300s;
+            proxy_connect_timeout 75s;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+            expires 1h;
+            add_header Cache-Control "public, immutable";
+        }
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+
+        location ~ /\. {
+            deny all;
+            access_log off;
+            log_not_found off;
+        }
+    }

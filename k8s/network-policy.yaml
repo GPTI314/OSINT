@@ -1,0 +1,159 @@
+# Network Policy for Backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: osint-backend-netpol
+  namespace: osint
+spec:
+  podSelector:
+    matchLabels:
+      app: osint-backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from frontend
+  - from:
+    - podSelector:
+        matchLabels:
+          app: osint-frontend
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow traffic from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow to database
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow to Redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow to Elasticsearch
+  - to:
+    - podSelector:
+        matchLabels:
+          app: elasticsearch
+    ports:
+    - protocol: TCP
+      port: 9200
+  # Allow external HTTPS (for API calls)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Network Policy for Frontend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: osint-frontend-netpol
+  namespace: osint
+spec:
+  podSelector:
+    matchLabels:
+      app: osint-frontend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 80
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow to backend
+  - to:
+    - podSelector:
+        matchLabels:
+          app: osint-backend
+    ports:
+    - protocol: TCP
+      port: 8000
+---
+# Network Policy for Database
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-netpol
+  namespace: osint
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+  - Ingress
+  ingress:
+  # Only allow from backend and worker
+  - from:
+    - podSelector:
+        matchLabels:
+          app: osint-backend
+    - podSelector:
+        matchLabels:
+          app: osint-worker
+    ports:
+    - protocol: TCP
+      port: 5432
+---
+# Network Policy for Redis
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-netpol
+  namespace: osint
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+  - Ingress
+  ingress:
+  # Only allow from backend and worker
+  - from:
+    - podSelector:
+        matchLabels:
+          app: osint-backend
+    - podSelector:
+        matchLabels:
+          app: osint-worker
+    ports:
+    - protocol: TCP
+      port: 6379

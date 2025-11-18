@@ -1,0 +1,64 @@
+# Role for OSINT application
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: osint-app-role
+  namespace: osint
+rules:
+# Allow reading ConfigMaps
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+# Allow reading Secrets
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+# Allow pod operations for autoscaling
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+# RoleBinding for backend service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: osint-backend-rolebinding
+  namespace: osint
+subjects:
+- kind: ServiceAccount
+  name: osint-backend
+  namespace: osint
+roleRef:
+  kind: Role
+  name: osint-app-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# RoleBinding for worker service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: osint-worker-rolebinding
+  namespace: osint
+subjects:
+- kind: ServiceAccount
+  name: osint-worker
+  namespace: osint
+roleRef:
+  kind: Role
+  name: osint-app-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# RoleBinding for frontend service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: osint-frontend-rolebinding
+  namespace: osint
+subjects:
+- kind: ServiceAccount
+  name: osint-frontend
+  namespace: osint
+roleRef:
+  kind: Role
+  name: osint-app-role
+  apiGroup: rbac.authorization.k8s.io

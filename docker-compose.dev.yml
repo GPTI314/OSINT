@@ -1,0 +1,67 @@
+version: '3.8'
+
+# Development override for Docker Compose
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=debug
+      - RELOAD=true
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debug port
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: builder
+    volumes:
+      - ./frontend:/build
+      - /build/node_modules
+    command: ["npm", "run", "dev"]
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+
+  worker:
+    environment:
+      - LOG_LEVEL=debug
+    volumes:
+      - .:/app
+
+  # Development tools
+  adminer:
+    image: adminer:latest
+    container_name: osint-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - osint-backend
+    depends_on:
+      - postgres
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: osint-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-changeme}
+    ports:
+      - "8081:8081"
+    networks:
+      - osint-backend
+    depends_on:
+      - redis

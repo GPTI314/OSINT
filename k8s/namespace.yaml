@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: osint
+  labels:
+    name: osint
+    environment: production
+    app: osint-toolkit

@@ -1,0 +1,77 @@
+# Multi-stage Dockerfile for OSINT Background Worker
+# Stage 1: Builder
+FROM python:3.11-slim as builder
+
+LABEL maintainer="OSINT Team"
+LABEL description="OSINT Worker - Builder Stage"
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    make \
+    libpq-dev \
+    libssl-dev \
+    libffi-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Create virtual environment and install dependencies
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir celery[redis] celery[mongodb]
+
+# Stage 2: Runtime
+FROM python:3.11-slim
+
+LABEL maintainer="OSINT Team"
+LABEL description="OSINT Worker - Production Image"
+
+# Create non-root user
+RUN groupadd -r worker && useradd -r -g worker -u 1001 worker
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application code
+COPY --chown=worker:worker . .
+
+# Set environment variables
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    C_FORCE_ROOT=true
+
+# Create directories
+RUN mkdir -p /app/logs /app/data && \
+    chown -R worker:worker /app
+
+# Health check for Celery worker
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD celery -A tasks inspect ping -d celery@$HOSTNAME || exit 1
+
+# Switch to non-root user
+USER worker
+
+# Volume for persistent data
+VOLUME ["/app/data", "/app/logs"]
+
+# Start Celery worker
+CMD ["celery", "-A", "tasks", "worker", "--loglevel=info", "--concurrency=4"]

@@ -1,0 +1,92 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+tests/
+test/
+*.test.js
+*.spec.js
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Kubernetes
+k8s/
+kubernetes/
+*.yaml
+*.yml
+
+# Node
+node_modules/
+npm-debug.log
+
+# Data
+data/
+cache/
+temp/
+tmp/

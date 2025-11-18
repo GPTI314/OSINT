@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: osint-frontend
+  namespace: osint
+  labels:
+    app: osint-frontend
+    tier: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: osint-frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP

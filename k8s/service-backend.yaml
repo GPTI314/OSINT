@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: osint-backend
+  namespace: osint
+  labels:
+    app: osint-backend
+    tier: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: osint-backend
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
