@@ -20,6 +20,11 @@ from .routes import (
     reports,
     users,
     auth as auth_routes,
+    seo_sem,
+    linkedin,
+    lists,
+    zoning,
+    health as health_routes,
 )
 
 
@@ -110,6 +115,36 @@ app.include_router(
     tags=["Reports"]
 )
 
+app.include_router(
+    seo_sem.router,
+    prefix=f"{settings.api_prefix}/seo-sem",
+    tags=["SEO/SEM"]
+)
+
+app.include_router(
+    linkedin.router,
+    prefix=f"{settings.api_prefix}/linkedin",
+    tags=["LinkedIn"]
+)
+
+app.include_router(
+    lists.router,
+    prefix=f"{settings.api_prefix}/lists",
+    tags=["Lists"]
+)
+
+app.include_router(
+    zoning.router,
+    prefix=f"{settings.api_prefix}/zoning",
+    tags=["Zoning"]
+)
+
+app.include_router(
+    health_routes.router,
+    prefix=f"{settings.api_prefix}/health",
+    tags=["Health & Sanity"]
+)
+
 
 @app.get("/")
 async def root():
@@ -123,7 +158,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint."""
+    """Health check endpoint (basic, no auth required)."""
     return {
         "status": "healthy",
         "version": settings.app_version,

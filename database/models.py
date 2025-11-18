@@ -272,3 +272,207 @@ class AuditLog(Base):
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")
+
+
+# SEO/SEM Models
+class SEOAnalysis(Base):
+    """SEO Analysis model."""
+    __tablename__ = "seo_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    target_url = Column(Text, nullable=False, index=True)
+    analysis_type = Column(String(50), nullable=False, index=True)  # on_page, technical, backlink, etc.
+    score = Column(Float)
+    issues = Column(JSON, default={})
+    recommendations = Column(JSON, default={})
+    raw_data = Column(JSON, default={})
+    analyzed_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+class KeywordRanking(Base):
+    """Keyword Rankings model."""
+    __tablename__ = "keyword_rankings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    domain = Column(String(255), nullable=False, index=True)
+    keyword = Column(String(255), nullable=False, index=True)
+    position = Column(Integer)
+    search_volume = Column(Integer)
+    difficulty = Column(Float)
+    cpc = Column(Float)
+    tracked_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    location = Column(String(100))
+    device_type = Column(String(20))  # desktop, mobile, tablet
+    metadata = Column(JSON, default={})
+
+
+class Backlink(Base):
+    """Backlink model."""
+    __tablename__ = "backlinks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    target_domain = Column(String(255), nullable=False, index=True)
+    source_url = Column(Text, nullable=False)
+    source_domain = Column(String(255), index=True)
+    anchor_text = Column(Text)
+    link_type = Column(String(20))  # dofollow, nofollow
+    domain_authority = Column(Integer)
+    page_authority = Column(Integer)
+    discovered_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+class CompetitorAnalysis(Base):
+    """Competitor Analysis model."""
+    __tablename__ = "competitor_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    target_domain = Column(String(255), nullable=False, index=True)
+    competitor_domain = Column(String(255), nullable=False, index=True)
+    comparison_metrics = Column(JSON, default={})
+    shared_keywords = Column(JSON, default=[])
+    backlink_overlap = Column(JSON, default={})
+    analyzed_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+# LinkedIn Models
+class LinkedInProfile(Base):
+    """LinkedIn Profile model."""
+    __tablename__ = "linkedin_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    profile_url = Column(Text, unique=True, nullable=False, index=True)
+    full_name = Column(String(255))
+    headline = Column(Text)
+    location = Column(String(255))
+    industry = Column(String(100))
+    current_company = Column(String(255))
+    current_position = Column(String(255))
+    company_size = Column(String(50))
+    experience = Column(JSON, default=[])
+    education = Column(JSON, default=[])
+    skills = Column(JSON, default=[])
+    connections_count = Column(Integer)
+    recommendations_count = Column(Integer)
+    posts_count = Column(Integer)
+    extracted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+class LinkedInCompany(Base):
+    """LinkedIn Company model."""
+    __tablename__ = "linkedin_companies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    company_url = Column(Text, unique=True, nullable=False, index=True)
+    company_name = Column(String(255), index=True)
+    industry = Column(String(100))
+    company_size = Column(String(50))
+    headquarters = Column(String(255))
+    website = Column(Text)
+    description = Column(Text)
+    employee_count = Column(Integer)
+    followers_count = Column(Integer)
+    specialties = Column(JSON, default=[])
+    extracted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+class LinkedInVertical(Base):
+    """LinkedIn Vertical model."""
+    __tablename__ = "linkedin_verticals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    vertical_name = Column(String(255), nullable=False, index=True)
+    vertical_type = Column(String(50), nullable=False)  # industry, location, company_size, etc.
+    criteria = Column(JSON, nullable=False)
+    profile_ids = Column(JSON, default=[])
+    company_ids = Column(JSON, default=[])
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+class VerticalFilter(Base):
+    """Vertical Filter model."""
+    __tablename__ = "vertical_filters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vertical_id = Column(Integer, ForeignKey("linkedin_verticals.id", ondelete="CASCADE"), nullable=False)
+    filter_type = Column(String(50), nullable=False)
+    filter_value = Column(Text)
+    applied_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+# List Management Models
+class ConfigurableList(Base):
+    """Configurable List model."""
+    __tablename__ = "configurable_lists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    list_name = Column(String(255), nullable=False, index=True)
+    list_type = Column(String(50))  # linkedin_vertical, seo_keywords, targets, etc.
+    description = Column(Text)
+    columns = Column(JSON, default={})  # Column definitions
+    sort_config = Column(JSON, default={})
+    filter_config = Column(JSON, default={})
+    view_config = Column(JSON, default={})
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+class ListItem(Base):
+    """List Item model."""
+    __tablename__ = "list_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    list_id = Column(Integer, ForeignKey("configurable_lists.id", ondelete="CASCADE"), nullable=False)
+    item_data = Column(JSON, nullable=False)
+    position = Column(Integer)
+    tags = Column(JSON, default=[])
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+class ListIntegration(Base):
+    """List Integration model."""
+    __tablename__ = "list_integrations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    list_id = Column(Integer, ForeignKey("configurable_lists.id", ondelete="CASCADE"), nullable=False)
+    integration_type = Column(String(50), nullable=False)  # zoho, notion, etc.
+    integration_config = Column(JSON, default={})
+    sync_status = Column(String(50))
+    last_synced_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
+
+
+# Austrian Zoning Models
+class ZoningSearch(Base):
+    """Zoning Search model."""
+    __tablename__ = "zoning_searches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id", ondelete="CASCADE"), nullable=True)
+    street_name = Column(String(255), nullable=False, index=True)
+    house_number = Column(String(50), nullable=False)
+    city = Column(String(255))
+    search_result = Column(JSON, default={})
+    plantextbestimmungen = Column(Text)
+    parsed_data = Column(JSON, default={})
+    searched_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    metadata = Column(JSON, default={})
