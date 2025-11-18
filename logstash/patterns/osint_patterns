@@ -1,0 +1,13 @@
+# Custom Grok Patterns for OSINT Platform
+
+# OSINT API request pattern
+OSINT_API_REQUEST %{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \[%{DATA:module}\] %{GREEDYDATA:message}
+
+# OSINT task pattern
+OSINT_TASK %{TIMESTAMP_ISO8601:timestamp} \[%{DATA:task_name}\] %{WORD:status} - %{GREEDYDATA:details}
+
+# IP address with optional port
+IPPORT %{IP:ip}(?::%{INT:port})?
+
+# User agent pattern
+USER_AGENT %{GREEDYDATA:user_agent}
