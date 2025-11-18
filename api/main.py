@@ -25,6 +25,7 @@ from .routes import (
     lists,
     zoning,
     health as health_routes,
+    gamification,
 )
 
 
@@ -143,6 +144,12 @@ app.include_router(
     health_routes.router,
     prefix=f"{settings.api_prefix}/health",
     tags=["Health & Sanity"]
+)
+
+app.include_router(
+    gamification.router,
+    prefix=f"{settings.api_prefix}/gamification",
+    tags=["Gamification & Engagement"]
 )
 
 
