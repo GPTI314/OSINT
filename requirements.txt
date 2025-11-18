@@ -103,3 +103,7 @@ tqdm==4.66.1
 tenacity==8.2.3
 schedule==1.2.0
 pytz==2023.3.post1
+psutil==5.9.6
+
+# Additional dependencies for new features
+# (Most dependencies already covered above)
