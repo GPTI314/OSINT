@@ -1,0 +1,52 @@
+# Recording rules for OSINT Toolkit
+
+groups:
+  - name: osint_recording_rules
+    interval: 30s
+    rules:
+      # Request rate
+      - record: osint:requests:rate5m
+        expr: rate(osint_requests_total[5m])
+
+      # Request error rate
+      - record: osint:requests:error_rate5m
+        expr: rate(osint_requests_total{status=~"5.."}[5m])
+
+      # Request success rate
+      - record: osint:requests:success_rate5m
+        expr: rate(osint_requests_total{status=~"2.."}[5m])
+
+      # Average request duration
+      - record: osint:request_duration:avg5m
+        expr: rate(osint_request_duration_seconds_sum[5m]) / rate(osint_request_duration_seconds_count[5m])
+
+      # 95th percentile request duration
+      - record: osint:request_duration:p95
+        expr: histogram_quantile(0.95, rate(osint_request_duration_seconds_bucket[5m]))
+
+      # 99th percentile request duration
+      - record: osint:request_duration:p99
+        expr: histogram_quantile(0.99, rate(osint_request_duration_seconds_bucket[5m]))
+
+      # Data collection rate
+      - record: osint:data_collected:rate5m
+        expr: rate(osint_data_collected_total[5m])
+
+      # Error rate
+      - record: osint:errors:rate5m
+        expr: rate(osint_errors_total[5m])
+
+      # Enrichment success rate
+      - record: osint:enrichment:success_rate5m
+        expr: |
+          rate(osint_enrichment_operations_total{status="success"}[5m]) /
+          rate(osint_enrichment_operations_total[5m])
+
+      # Average memory usage
+      - record: osint:memory:avg_mb
+        expr: osint_memory_usage_bytes / 1024 / 1024
+
+      # Network throughput
+      - record: osint:network:throughput_mbps
+        expr: |
+          (rate(osint_network_bytes_sent_total[5m]) + rate(osint_network_bytes_received_total[5m])) * 8 / 1024 / 1024

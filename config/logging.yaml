@@ -1,0 +1,74 @@
+# Logging configuration for OSINT Toolkit
+
+# Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+default_level: INFO
+
+# Log file settings
+files:
+  # Main application log
+  main:
+    path: logs/osint-toolkit.log
+    max_bytes: 104857600  # 100MB
+    backup_count: 10
+    format: standard
+
+  # JSON structured log
+  json:
+    path: logs/osint-toolkit.json.log
+    max_bytes: 104857600
+    backup_count: 10
+    format: json
+
+  # Error-only log
+  error:
+    path: logs/osint-toolkit.error.log
+    max_bytes: 52428800  # 50MB
+    backup_count: 5
+    format: json
+    level: ERROR
+
+# Console logging
+console:
+  enabled: true
+  format: json
+  level: INFO
+
+# ELK Stack integration
+elk:
+  enabled: true
+  elasticsearch:
+    host: localhost
+    port: 9200
+  logstash:
+    host: localhost
+    port: 5000
+
+# Sensitive data masking
+masking:
+  enabled: true
+  patterns:
+    - email
+    - ip
+    - phone
+    - api_key
+    - credit_card
+    - ssn
+    - password
+
+# Log retention
+retention:
+  # Delete logs older than N days
+  days: 30
+  # Compress old logs
+  compress: true
+
+# Per-module log levels
+loggers:
+  osint.collectors:
+    level: DEBUG
+  osint.enrichment:
+    level: INFO
+  osint.analysis:
+    level: INFO
+  osint.database:
+    level: WARNING

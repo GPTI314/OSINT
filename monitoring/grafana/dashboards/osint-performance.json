@@ -1,0 +1,100 @@
+{
+  "dashboard": {
+    "title": "OSINT Toolkit - Performance",
+    "tags": ["osint", "performance"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Duration Heatmap",
+        "type": "heatmap",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(osint_request_duration_seconds_bucket[5m])",
+            "format": "heatmap"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Request Duration Percentiles",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(osint_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.90, rate(osint_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p90"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(osint_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(osint_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Analysis Duration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(osint_analysis_duration_seconds_sum[5m]) / rate(osint_analysis_duration_seconds_count[5m])",
+            "legendFormat": "{{analysis_type}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Database Query Duration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(osint_db_query_duration_seconds_sum[5m]) / rate(osint_db_query_duration_seconds_count[5m])",
+            "legendFormat": "{{query_type}}"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Queue Processing Duration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(osint_queue_processing_duration_seconds_sum[5m]) / rate(osint_queue_processing_duration_seconds_count[5m])",
+            "legendFormat": "{{queue_name}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Network Throughput",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "rate(osint_network_bytes_sent_total[5m]) * 8 / 1024 / 1024",
+            "legendFormat": "Sent (Mbps)"
+          },
+          {
+            "expr": "rate(osint_network_bytes_received_total[5m]) * 8 / 1024 / 1024",
+            "legendFormat": "Received (Mbps)"
+          }
+        ]
+      }
+    ]
+  }
+}

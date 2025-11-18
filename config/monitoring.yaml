@@ -1,0 +1,128 @@
+# Monitoring configuration for OSINT Toolkit
+
+# Prometheus metrics
+prometheus:
+  enabled: true
+  port: 8000
+  path: /metrics
+
+  # Metric collection intervals
+  intervals:
+    system_metrics: 15  # seconds
+    application_metrics: 10
+
+  # Metric retention
+  retention:
+    days: 30
+
+# Health checks
+health_checks:
+  enabled: true
+  interval: 30  # seconds
+  timeout: 10
+
+  # Built-in checks
+  system:
+    cpu:
+      enabled: true
+      threshold_warning: 75
+      threshold_critical: 90
+    memory:
+      enabled: true
+      threshold_warning: 75
+      threshold_critical: 90
+    disk:
+      enabled: true
+      threshold_warning: 80
+      threshold_critical: 95
+
+  # Custom checks
+  custom:
+    - name: database
+      enabled: false
+      critical: true
+    - name: cache
+      enabled: false
+      critical: false
+    - name: external_api
+      enabled: false
+      critical: false
+
+# Performance monitoring
+performance:
+  enabled: true
+
+  # Track execution time for operations
+  track_operations:
+    - data_collection
+    - enrichment
+    - analysis
+    - database_query
+
+  # Include system stats in tracking
+  include_system_stats: true
+
+  # Keep last N measurements per operation
+  history_size: 1000
+
+# Grafana
+grafana:
+  enabled: true
+  port: 3000
+
+  # Auto-provision dashboards
+  dashboards:
+    - osint-overview
+    - osint-performance
+
+# AlertManager
+alerting:
+  enabled: true
+  port: 9093
+
+  # Email settings
+  email:
+    enabled: true
+    from: osint@example.com
+    to: alerts@example.com
+    smtp_host: smtp.example.com
+    smtp_port: 587
+    smtp_tls: true
+
+  # Slack (optional)
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#osint-alerts"
+
+  # PagerDuty (optional)
+  pagerduty:
+    enabled: false
+    service_key: ""
+
+  # Alert grouping
+  grouping:
+    by:
+      - alertname
+      - cluster
+      - service
+    wait: 10s
+    interval: 10s
+    repeat_interval: 12h
+
+# Resource tracking
+resource_tracking:
+  enabled: true
+
+  # Track system resources
+  system:
+    - cpu
+    - memory
+    - disk
+    - network
+
+  # Track process resources
+  process:
+    - threads
+    - file_descriptors
+    - io_operations

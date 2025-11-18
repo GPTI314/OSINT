@@ -1,0 +1,137 @@
+# Alert rules for OSINT Toolkit
+
+groups:
+  - name: osint_alerts
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: osint_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% for more than 5 minutes"
+
+      # Critical CPU usage
+      - alert: CriticalCPUUsage
+        expr: osint_cpu_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical CPU usage detected"
+          description: "CPU usage is {{ $value }}% for more than 2 minutes"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (osint_memory_usage_bytes / 1024 / 1024 / 1024) > 8
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}GB for more than 5 minutes"
+
+      # High disk usage
+      - alert: HighDiskUsage
+        expr: osint_disk_usage_percent > 85
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is {{ $value }}% for more than 10 minutes"
+
+      # Critical disk usage
+      - alert: CriticalDiskUsage
+        expr: osint_disk_usage_percent > 95
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical disk usage detected"
+          description: "Disk usage is {{ $value }}% - immediate action required"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(osint_errors_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/second over last 5 minutes"
+
+      # Application down
+      - alert: ApplicationDown
+        expr: up{job="osint-toolkit"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "OSINT application is down"
+          description: "The OSINT application has been down for more than 1 minute"
+
+      # Slow request response
+      - alert: SlowRequests
+        expr: histogram_quantile(0.95, rate(osint_request_duration_seconds_bucket[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "Slow request response times"
+          description: "95th percentile request duration is {{ $value }}s"
+
+      # High queue size
+      - alert: HighQueueSize
+        expr: osint_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: queue
+        annotations:
+          summary: "Queue size is high"
+          description: "Queue {{ $labels.queue_name }} has {{ $value }} items"
+
+      # Database connection issues
+      - alert: DatabaseConnectionIssues
+        expr: osint_db_connections_active > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of database connections"
+          description: "{{ $value }} active database connections"
+
+      # Enrichment operation failures
+      - alert: EnrichmentFailures
+        expr: rate(osint_enrichment_operations_total{status="failure"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: enrichment
+        annotations:
+          summary: "High enrichment failure rate"
+          description: "Enrichment operations failing at {{ $value }} ops/second"
+
+      # No data collected
+      - alert: NoDataCollected
+        expr: rate(osint_data_collected_total[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          component: collection
+        annotations:
+          summary: "No data being collected"
+          description: "No data has been collected in the last 15 minutes"
