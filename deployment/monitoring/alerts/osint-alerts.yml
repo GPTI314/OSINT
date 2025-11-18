@@ -1,0 +1,267 @@
+# Prometheus Alert Rules for OSINT Platform
+
+groups:
+  - name: osint_platform_alerts
+    interval: 30s
+    rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for 5 minutes (current: {{ $value }}%)"
+
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 95% (current: {{ $value }}%)"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current: {{ $value }}%)"
+
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 95% (current: {{ $value }}%)"
+
+      # Disk Space
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+          category: storage
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk {{ $labels.mountpoint }} has less than 20% free space"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 2m
+        labels:
+          severity: critical
+          category: storage
+        annotations:
+          summary: "Critical disk space on {{ $labels.instance }}"
+          description: "Disk {{ $labels.mountpoint }} has less than 10% free space"
+
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been down for more than 1 minute"
+
+      # Database Alerts
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is not responding"
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache is not responding"
+
+      - alert: ElasticsearchDown
+        expr: elasticsearch_cluster_health_status != 1
+        for: 2m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "Elasticsearch cluster unhealthy"
+          description: "Elasticsearch cluster is not in green status"
+
+      # OSINT Platform Specific
+      - alert: HighTaskQueueDepth
+        expr: celery_tasks_total{state="queued"} > 100
+        for: 10m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "High task queue depth"
+          description: "More than 100 tasks queued for over 10 minutes"
+
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is above 5% (current: {{ $value }})"
+
+      - alert: WorkerDown
+        expr: celery_workers_total < 2
+        for: 2m
+        labels:
+          severity: critical
+          category: application
+        annotations:
+          summary: "Celery workers down"
+          description: "Less than 2 Celery workers are running"
+
+      # Network Alerts
+      - alert: NetworkAnomalyDetected
+        expr: network_anomaly_score > 7.0
+        for: 2m
+        labels:
+          severity: medium
+          category: security
+        annotations:
+          summary: "Network anomaly detected"
+          description: "Anomaly score: {{ $value }}"
+
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000  # 100MB/s
+        for: 10m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "High network traffic on {{ $labels.instance }}"
+          description: "Receiving more than 100MB/s for 10 minutes"
+
+      - alert: PiholeDown
+        expr: up{job="rpi4-monitor"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: network
+        annotations:
+          summary: "Pi-hole DNS server down"
+          description: "Pi-hole is not responding - DNS filtering unavailable"
+
+      # Security Alerts
+      - alert: SecurityEventSpike
+        expr: rate(security_events_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: high
+          category: security
+        annotations:
+          summary: "Security event spike detected"
+          description: "More than 10 security events per second"
+
+      - alert: SuspiciousDNSQuery
+        expr: increase(dns_queries_blocked_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: medium
+          category: security
+        annotations:
+          summary: "Suspicious DNS activity"
+          description: "More than 50 DNS queries blocked in 5 minutes"
+
+      # Container Alerts
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          category: container
+        annotations:
+          summary: "High CPU in container {{ $labels.name }}"
+          description: "Container CPU usage above 80%"
+
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: container
+        annotations:
+          summary: "High memory in container {{ $labels.name }}"
+          description: "Container memory usage above 90%"
+
+      - alert: ContainerRestarting
+        expr: rate(container_last_seen[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: container
+        annotations:
+          summary: "Container {{ $labels.name }} is restarting"
+          description: "Container has restarted multiple times in 5 minutes"
+
+      # Raspberry Pi Specific
+      - alert: RPiHighTemperature
+        expr: rpi_cpu_temperature > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: hardware
+        annotations:
+          summary: "High temperature on {{ $labels.instance }}"
+          description: "CPU temperature is {{ $value }}°C"
+
+      - alert: RPiCriticalTemperature
+        expr: rpi_cpu_temperature > 85
+        for: 2m
+        labels:
+          severity: critical
+          category: hardware
+        annotations:
+          summary: "Critical temperature on {{ $labels.instance }}"
+          description: "CPU temperature is {{ $value }}°C - risk of thermal throttling"
+
+      # Backup Alerts
+      - alert: BackupFailed
+        expr: backup_last_success_timestamp < time() - 86400  # 24 hours
+        for: 1h
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Backup has not succeeded in 24 hours"
+          description: "Last successful backup was {{ $value }} seconds ago"
+
+      # VPN Alerts
+      - alert: VPNDown
+        expr: wireguard_peers_total == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "No VPN peers connected"
+          description: "WireGuard VPN has no active peers"
