@@ -1,0 +1,58 @@
+{
+  "name": "osint-platform",
+  "version": "1.0.0",
+  "description": "OSINT Intelligence Platform - Comprehensive frontend for intelligence gathering and analysis",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "@mui/icons-material": "^6.3.0",
+    "@mui/lab": "^6.0.0-beta.14",
+    "@mui/material": "^6.3.0",
+    "@mui/x-data-grid": "^7.22.2",
+    "@mui/x-date-pickers": "^7.22.2",
+    "@tanstack/react-query": "^5.62.7",
+    "axios": "^1.7.9",
+    "date-fns": "^4.1.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.2",
+    "reactflow": "^11.11.4",
+    "recharts": "^2.15.0",
+    "socket.io-client": "^4.8.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.14.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1",
+    "vite": "^6.0.3"
+  },
+  "keywords": [
+    "osint",
+    "intelligence",
+    "investigation",
+    "security",
+    "analysis",
+    "react",
+    "typescript"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
