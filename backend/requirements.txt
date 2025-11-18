@@ -1,0 +1,117 @@
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database Drivers
+sqlalchemy==2.0.23
+alembic==1.12.1
+psycopg2-binary==2.9.9
+pymongo==4.6.0
+motor==3.3.2  # Async MongoDB
+elasticsearch==8.11.0
+redis==5.0.1
+
+# Task Queue
+celery==5.3.4
+celery[redis]==5.3.4
+flower==2.0.1  # Celery monitoring
+
+# Web Scraping & Crawling
+scrapy==2.11.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+selenium==4.15.2
+playwright==1.40.0
+requests==2.31.0
+httpx==0.25.2
+aiohttp==3.9.1
+
+# Data Processing
+pandas==2.1.3
+numpy==1.26.2
+python-dateutil==2.8.2
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+bcrypt==4.1.1
+
+# API Documentation
+python-docx==1.1.0
+reportlab==4.0.7
+openpyxl==3.1.2
+xlsxwriter==3.1.9
+
+# OSINT Specific Tools
+dnspython==2.4.2
+python-whois==0.8.0
+shodan==1.31.0
+censys==2.2.9
+ipwhois==1.2.0
+googlesearch-python==1.2.3
+tweepy==4.14.0
+praw==7.7.1  # Reddit API
+phonenumbers==8.13.27
+email-validator==2.1.0
+pillow==10.1.0  # Image processing
+exifread==3.0.0  # EXIF metadata
+pytesseract==0.3.10  # OCR
+
+# Geolocation
+geopy==2.4.1
+geoip2==4.7.0
+
+# Social Media
+instaloader==4.10.3
+facebook-sdk==3.1.0
+
+# Network Tools
+scapy==2.5.0
+nmap==0.0.1
+python-nmap==0.7.1
+
+# Threat Intelligence
+stix2==3.0.1
+taxii2-client==2.3.0
+misp-python==2.4.175
+
+# Utilities
+python-dotenv==1.0.0
+click==8.1.7
+rich==13.7.0  # Beautiful terminal output
+loguru==0.7.2
+pyyaml==6.0.1
+validators==0.22.0
+tldextract==5.1.1
+user-agents==2.2.0
+
+# Monitoring & Logging
+prometheus-client==0.19.0
+python-json-logger==2.0.7
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+faker==20.1.0
+
+# WebSockets
+websockets==12.0
+python-socketio==5.10.0
+
+# Image Analysis
+opencv-python==4.8.1.78
+face-recognition==1.3.0
+
+# Document Processing
+PyPDF2==3.0.1
+python-magic==0.4.27
+
+# Rate Limiting
+slowapi==0.1.9
+
+# CORS
+fastapi-cors==0.0.6
