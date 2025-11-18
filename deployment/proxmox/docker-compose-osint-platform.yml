@@ -1,0 +1,251 @@
+version: '3.8'
+
+###############################################################################
+# OSINT Platform - Docker Compose for Proxmox CT-200
+# Deploy this on the Docker Host container (10.0.0.20)
+###############################################################################
+
+networks:
+  osint_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  # FastAPI Application
+  osint-api:
+    build:
+      context: /opt/osint-platform
+      dockerfile: Dockerfile
+    container_name: osint-api
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql+asyncpg://osint_user:${POSTGRES_PASSWORD}@10.0.0.11:5432/osint_platform
+      - MONGODB_URL=mongodb://osint_user:${MONGO_PASSWORD}@10.0.0.12:27017/osint_platform
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - ELASTICSEARCH_URL=http://10.0.0.14:9200
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - PROMETHEUS_PUSHGATEWAY=http://10.0.0.17:9091
+    ports:
+      - "8000:8000"
+    volumes:
+      - /opt/osint-platform/logs:/app/logs
+      - /opt/osint-platform/storage:/app/storage
+    networks:
+      - osint_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Workers - Heavy Processing
+  osint-worker-heavy:
+    build:
+      context: /opt/osint-platform
+      dockerfile: Dockerfile
+    container_name: osint-worker-heavy
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://osint_user:${POSTGRES_PASSWORD}@10.0.0.11:5432/osint_platform
+      - MONGODB_URL=mongodb://osint_user:${MONGO_PASSWORD}@10.0.0.12:27017/osint_platform
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - ELASTICSEARCH_URL=http://10.0.0.14:9200
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - WORKER_TYPE=heavy
+      - WORKER_QUEUE=scraping,intelligence,analysis
+    volumes:
+      - /opt/osint-platform/logs:/app/logs
+      - /opt/osint-platform/storage:/app/storage
+    networks:
+      - osint_network
+    command: celery -A tasks.celery_app worker --loglevel=info -Q scraping,intelligence,analysis --concurrency=4
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '3'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+
+  # Celery Workers - Light Processing
+  osint-worker-light:
+    build:
+      context: /opt/osint-platform
+      dockerfile: Dockerfile
+    container_name: osint-worker-light
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://osint_user:${POSTGRES_PASSWORD}@10.0.0.11:5432/osint_platform
+      - MONGODB_URL=mongodb://osint_user:${MONGO_PASSWORD}@10.0.0.12:27017/osint_platform
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - ELASTICSEARCH_URL=http://10.0.0.14:9200
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - WORKER_TYPE=light
+      - WORKER_QUEUE=notifications,email,reports
+    volumes:
+      - /opt/osint-platform/logs:/app/logs
+      - /opt/osint-platform/storage:/app/storage
+    networks:
+      - osint_network
+    command: celery -A tasks.celery_app worker --loglevel=info -Q notifications,email,reports --concurrency=2
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Celery Beat - Scheduler
+  osint-beat:
+    build:
+      context: /opt/osint-platform
+      dockerfile: Dockerfile
+    container_name: osint-beat
+    environment:
+      - ENVIRONMENT=production
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+    networks:
+      - osint_network
+    command: celery -A tasks.celery_app beat --loglevel=info
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Flower - Celery Monitoring
+  osint-flower:
+    build:
+      context: /opt/osint-platform
+      dockerfile: Dockerfile
+    container_name: osint-flower
+    environment:
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@10.0.0.13:6379/0
+      - FLOWER_PORT=5555
+      - FLOWER_BASIC_AUTH=${FLOWER_USER}:${FLOWER_PASSWORD}
+    ports:
+      - "5555:5555"
+    networks:
+      - osint_network
+    command: celery -A tasks.celery_app flower --port=5555
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Wireshark Container (tshark for packet analysis)
+  wireshark-analysis:
+    image: linuxserver/wireshark:latest
+    container_name: osint-wireshark
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    ports:
+      - "3000:3000"
+    networks:
+      - osint_network
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # nginx - Reverse Proxy
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: osint-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/osint-platform/config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /opt/osint-platform/config/nginx/ssl:/etc/nginx/ssl:ro
+      - /opt/osint-platform/logs/nginx:/var/log/nginx
+    networks:
+      - osint_network
+    depends_on:
+      - osint-api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # Prometheus Node Exporter
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: osint-node-exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - osint_network
+    pid: host
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+
+  # cAdvisor - Container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: osint-cadvisor
+    ports:
+      - "8080:8080"
+    networks:
+      - osint_network
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+
+volumes:
+  logs:
+    driver: local
+  storage:
+    driver: local

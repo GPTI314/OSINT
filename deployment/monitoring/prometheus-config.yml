@@ -1,0 +1,196 @@
+# Prometheus Configuration for OSINT Platform
+# Deploy to CT-107 (prometheus-osint)
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    cluster: 'osint-platform'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'localhost:9093'
+
+# Load rules
+rule_files:
+  - 'alerts/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Proxmox Containers - Databases
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['10.0.0.11:9187']
+        labels:
+          service: 'postgresql'
+          node: 'ct-101'
+
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['10.0.0.12:9216']
+        labels:
+          service: 'mongodb'
+          node: 'ct-102'
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['10.0.0.13:9121']
+        labels:
+          service: 'redis'
+          node: 'ct-103'
+
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['10.0.0.14:9114']
+        labels:
+          service: 'elasticsearch'
+          node: 'ct-104'
+
+  # Proxmox Docker Host
+  - job_name: 'docker-host'
+    static_configs:
+      - targets: ['10.0.0.20:9100']
+        labels:
+          service: 'docker-host'
+          node: 'ct-200'
+
+  - job_name: 'cadvisor-docker'
+    static_configs:
+      - targets: ['10.0.0.20:8080']
+        labels:
+          service: 'cadvisor'
+          node: 'ct-200'
+
+  # OSINT Platform Services
+  - job_name: 'osint-api'
+    static_configs:
+      - targets: ['10.0.0.20:8000']
+        labels:
+          service: 'osint-api'
+          node: 'ct-200'
+    metrics_path: '/metrics'
+
+  # Network Monitoring
+  - job_name: 'network-flow'
+    static_configs:
+      - targets: ['10.0.0.40:9100']
+        labels:
+          service: 'network-flow'
+          node: 'ct-400'
+
+  - job_name: 'security-monitor'
+    static_configs:
+      - targets: ['10.0.0.41:9100']
+        labels:
+          service: 'security-monitor'
+          node: 'ct-401'
+
+  # Kali VM
+  - job_name: 'kali-vm'
+    static_configs:
+      - targets: ['10.0.0.30:9100']
+        labels:
+          service: 'kali'
+          node: 'vm-300'
+
+  # Raspberry Pi Nodes
+  - job_name: 'rpi5-primary'
+    static_configs:
+      - targets: ['10.0.0.10:9100']
+        labels:
+          service: 'rpi5-primary'
+          node: 'raspberry-pi'
+
+  - job_name: 'rpi5-primary-cadvisor'
+    static_configs:
+      - targets: ['10.0.0.10:8080']
+        labels:
+          service: 'cadvisor'
+          node: 'rpi5-primary'
+
+  - job_name: 'rpi5-secondary'
+    static_configs:
+      - targets: ['10.0.0.11:9100']
+        labels:
+          service: 'rpi5-secondary'
+          node: 'raspberry-pi'
+
+  - job_name: 'rpi5-secondary-cadvisor'
+    static_configs:
+      - targets: ['10.0.0.11:8080']
+        labels:
+          service: 'cadvisor'
+          node: 'rpi5-secondary'
+
+  - job_name: 'rpi4-monitor'
+    static_configs:
+      - targets: ['10.0.0.12:9100']
+        labels:
+          service: 'rpi4-monitor'
+          node: 'raspberry-pi'
+
+  - job_name: 'rpi4-monitor-cadvisor'
+    static_configs:
+      - targets: ['10.0.0.12:8080']
+        labels:
+          service: 'cadvisor'
+          node: 'rpi4-monitor'
+
+  # Banana Pi Gateway
+  - job_name: 'banana-pi-gateway'
+    static_configs:
+      - targets: ['10.0.0.1:9100']
+        labels:
+          service: 'gateway'
+          node: 'banana-pi'
+
+  # Grafana
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['10.0.0.18:3000']
+        labels:
+          service: 'grafana'
+          node: 'ct-108'
+    metrics_path: '/metrics'
+
+  # Pushgateway for custom metrics
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['10.0.0.17:9091']
+        labels:
+          service: 'pushgateway'
+
+  # Blackbox exporter for endpoint monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://10.0.0.20:8000/health  # OSINT API
+          - http://10.0.0.16:5601         # Kibana
+          - http://10.0.0.18:3000         # Grafana
+          - http://10.0.0.12/admin        # Pi-hole
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
+
+# Remote write (optional - for long-term storage)
+# remote_write:
+#   - url: "http://long-term-storage:9090/api/v1/write"
