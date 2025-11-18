@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # Redis - Message Broker and Result Backend
+  redis:
+    image: redis:7-alpine
+    container_name: osint_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Celery Worker - Default Queue
+  celery_worker_default:
+    build: .
+    container_name: osint_worker_default
+    command: celery -A celery_app worker -Q default -l info -n default@%h --concurrency=4
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery Worker - High Priority Queue
+  celery_worker_high:
+    build: .
+    container_name: osint_worker_high
+    command: celery -A celery_app worker -Q high,critical -l info -n high@%h --concurrency=2
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery Worker - Low Priority Queue
+  celery_worker_low:
+    build: .
+    container_name: osint_worker_low
+    command: celery -A celery_app worker -Q low,batch -l info -n low@%h --concurrency=2
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery Beat - Scheduler
+  celery_beat:
+    build: .
+    container_name: osint_beat
+    command: celery -A celery_app beat -l info --scheduler celery.beat:PersistentScheduler
+    volumes:
+      - .:/app
+      - beat_schedule:/tmp
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Flower - Monitoring Dashboard
+  flower:
+    build: .
+    container_name: osint_flower
+    command: celery -A celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Optional: Redis Commander for Redis Management
+  redis_commander:
+    image: rediscommander/redis-commander:latest
+    container_name: osint_redis_commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  beat_schedule:
+
+networks:
+  default:
+    name: osint_network
