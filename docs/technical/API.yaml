@@ -1,0 +1,1338 @@
+openapi: 3.0.3
+info:
+  title: OSINT Platform API
+  description: |
+    RESTful API for the OSINT (Open-Source Intelligence) Platform.
+
+    This API provides endpoints for:
+    - Data collection from various OSINT sources
+    - Data enrichment and analysis
+    - Link analysis and relationship mapping
+    - Risk scoring and assessment
+    - Investigative workflow automation
+
+    ## Authentication
+    All endpoints (except login/register) require JWT authentication.
+    Include the JWT token in the Authorization header: `Bearer <token>`
+
+    ## Rate Limiting
+    - Standard users: 100 requests per minute
+    - Premium users: 1000 requests per minute
+    - API keys: Custom limits based on subscription
+  version: 1.0.0
+  contact:
+    name: OSINT Platform Support
+    email: support@osint-platform.example
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://api.osint-platform.example/v1
+    description: Production server
+  - url: https://staging-api.osint-platform.example/v1
+    description: Staging server
+  - url: http://localhost:8000/v1
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Collections
+    description: Data collection operations
+  - name: Entities
+    description: Entity management and retrieval
+  - name: Relationships
+    description: Relationship mapping and analysis
+  - name: Analysis
+    description: Data analysis and link analysis
+  - name: Risk Scoring
+    description: Risk assessment and scoring
+  - name: Workflows
+    description: Automated workflow management
+  - name: Search
+    description: Search across all data types
+  - name: Reports
+    description: Report generation and export
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Get a new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+              required:
+                - refresh_token
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collections:
+    get:
+      tags:
+        - Collections
+      summary: List all collections
+      description: Retrieve a list of all data collection jobs
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, failed]
+          description: Filter by collection status
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionList'
+
+    post:
+      tags:
+        - Collections
+      summary: Create a new collection
+      description: Start a new data collection job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionCreate'
+      responses:
+        '201':
+          description: Collection created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collections/{collectionId}:
+    get:
+      tags:
+        - Collections
+      summary: Get collection details
+      description: Retrieve details of a specific collection job
+      parameters:
+        - $ref: '#/components/parameters/CollectionIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Collections
+      summary: Delete a collection
+      description: Delete a collection job and its associated data
+      parameters:
+        - $ref: '#/components/parameters/CollectionIdParam'
+      responses:
+        '204':
+          description: Collection deleted successfully
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collections/{collectionId}/results:
+    get:
+      tags:
+        - Collections
+      summary: Get collection results
+      description: Retrieve the results of a completed collection job
+      parameters:
+        - $ref: '#/components/parameters/CollectionIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionResults'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /entities:
+    get:
+      tags:
+        - Entities
+      summary: List all entities
+      description: Retrieve a list of all entities
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [person, organization, location, domain, ip_address, email, phone]
+          description: Filter by entity type
+        - name: risk_score_min
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+          description: Minimum risk score filter
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityList'
+
+    post:
+      tags:
+        - Entities
+      summary: Create a new entity
+      description: Manually create a new entity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntityCreate'
+      responses:
+        '201':
+          description: Entity created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entity'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /entities/{entityId}:
+    get:
+      tags:
+        - Entities
+      summary: Get entity details
+      description: Retrieve detailed information about a specific entity
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityDetailed'
+        '404':
+          description: Entity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Entities
+      summary: Update an entity
+      description: Update entity information
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntityUpdate'
+      responses:
+        '200':
+          description: Entity updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entity'
+        '404':
+          description: Entity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Entities
+      summary: Delete an entity
+      description: Delete an entity and its relationships
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+      responses:
+        '204':
+          description: Entity deleted successfully
+        '404':
+          description: Entity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /entities/{entityId}/relationships:
+    get:
+      tags:
+        - Relationships
+      summary: Get entity relationships
+      description: Retrieve all relationships for a specific entity
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+        - name: depth
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+            default: 1
+          description: Depth of relationship traversal
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelationshipGraph'
+
+  /relationships:
+    post:
+      tags:
+        - Relationships
+      summary: Create a relationship
+      description: Create a new relationship between two entities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RelationshipCreate'
+      responses:
+        '201':
+          description: Relationship created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relationship'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /relationships/{relationshipId}:
+    delete:
+      tags:
+        - Relationships
+      summary: Delete a relationship
+      description: Remove a relationship between entities
+      parameters:
+        - name: relationshipId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Relationship deleted successfully
+        '404':
+          description: Relationship not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /analysis/link-analysis:
+    post:
+      tags:
+        - Analysis
+      summary: Perform link analysis
+      description: Analyze relationships between entities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkAnalysisRequest'
+      responses:
+        '200':
+          description: Analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkAnalysisResult'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /analysis/pattern-detection:
+    post:
+      tags:
+        - Analysis
+      summary: Detect patterns
+      description: Identify patterns and anomalies in data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatternDetectionRequest'
+      responses:
+        '200':
+          description: Pattern detection completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatternDetectionResult'
+
+  /risk-scoring/calculate:
+    post:
+      tags:
+        - Risk Scoring
+      summary: Calculate risk score
+      description: Calculate or recalculate risk score for an entity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entity_id:
+                  type: string
+                  format: uuid
+                recalculate:
+                  type: boolean
+                  default: false
+              required:
+                - entity_id
+      responses:
+        '200':
+          description: Risk score calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskScore'
+
+  /workflows:
+    get:
+      tags:
+        - Workflows
+      summary: List workflows
+      description: Retrieve all workflow definitions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowList'
+
+    post:
+      tags:
+        - Workflows
+      summary: Create workflow
+      description: Define a new automated workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowCreate'
+      responses:
+        '201':
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+
+  /workflows/{workflowId}/execute:
+    post:
+      tags:
+        - Workflows
+      summary: Execute workflow
+      description: Trigger a workflow execution
+      parameters:
+        - name: workflowId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '202':
+          description: Workflow execution started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowExecution'
+
+  /search:
+    get:
+      tags:
+        - Search
+      summary: Global search
+      description: Search across all entities and data
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [entity, relationship, collection, all]
+          description: Search type filter
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResults'
+
+  /reports:
+    get:
+      tags:
+        - Reports
+      summary: List reports
+      description: Retrieve all generated reports
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportList'
+
+    post:
+      tags:
+        - Reports
+      summary: Generate report
+      description: Create a new investigation report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreate'
+      responses:
+        '202':
+          description: Report generation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+
+  /reports/{reportId}:
+    get:
+      tags:
+        - Reports
+      summary: Get report
+      description: Retrieve a specific report
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDetailed'
+
+  /reports/{reportId}/download:
+    get:
+      tags:
+        - Reports
+      summary: Download report
+      description: Download report in specified format
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [pdf, docx, json, csv]
+            default: pdf
+      responses:
+        '200':
+          description: Report file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number for pagination
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Number of items per page
+
+    CollectionIdParam:
+      name: collectionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Collection ID
+
+    EntityIdParam:
+      name: entityId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Entity ID
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          additionalProperties: true
+      required:
+        - error
+        - code
+
+    UserRegistration:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        username:
+          type: string
+          minLength: 3
+        full_name:
+          type: string
+      required:
+        - email
+        - password
+        - username
+
+    UserLogin:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        username:
+          type: string
+        full_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          default: bearer
+        expires_in:
+          type: integer
+          description: Token expiration in seconds
+
+    CollectionCreate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        collector_type:
+          type: string
+          enum: [social_media, domain_intel, public_db, news, custom]
+        config:
+          type: object
+          additionalProperties: true
+        schedule:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            cron:
+              type: string
+      required:
+        - name
+        - collector_type
+        - config
+
+    Collection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        collector_type:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        items_collected:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    CollectionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    CollectionResults:
+      type: object
+      properties:
+        collection_id:
+          type: string
+          format: uuid
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    EntityCreate:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [person, organization, location, domain, ip_address, email, phone]
+        name:
+          type: string
+        properties:
+          type: object
+          additionalProperties: true
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - type
+        - name
+
+    EntityUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        properties:
+          type: object
+          additionalProperties: true
+        tags:
+          type: array
+          items:
+            type: string
+
+    Entity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        name:
+          type: string
+        risk_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    EntityDetailed:
+      allOf:
+        - $ref: '#/components/schemas/Entity'
+        - type: object
+          properties:
+            properties:
+              type: object
+              additionalProperties: true
+            relationship_count:
+              type: integer
+            collection_sources:
+              type: array
+              items:
+                type: string
+
+    EntityList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entity'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    RelationshipCreate:
+      type: object
+      properties:
+        source_entity_id:
+          type: string
+          format: uuid
+        target_entity_id:
+          type: string
+          format: uuid
+        relationship_type:
+          type: string
+        properties:
+          type: object
+          additionalProperties: true
+      required:
+        - source_entity_id
+        - target_entity_id
+        - relationship_type
+
+    Relationship:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_entity_id:
+          type: string
+          format: uuid
+        target_entity_id:
+          type: string
+          format: uuid
+        relationship_type:
+          type: string
+        properties:
+          type: object
+          additionalProperties: true
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        created_at:
+          type: string
+          format: date-time
+
+    RelationshipGraph:
+      type: object
+      properties:
+        root_entity_id:
+          type: string
+          format: uuid
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entity'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relationship'
+
+    LinkAnalysisRequest:
+      type: object
+      properties:
+        entity_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        max_depth:
+          type: integer
+          minimum: 1
+          maximum: 5
+        algorithm:
+          type: string
+          enum: [shortest_path, community_detection, centrality]
+      required:
+        - entity_ids
+
+    LinkAnalysisResult:
+      type: object
+      properties:
+        analysis_id:
+          type: string
+          format: uuid
+        algorithm:
+          type: string
+        graph:
+          $ref: '#/components/schemas/RelationshipGraph'
+        metrics:
+          type: object
+          additionalProperties: true
+        insights:
+          type: array
+          items:
+            type: string
+
+    PatternDetectionRequest:
+      type: object
+      properties:
+        entity_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        pattern_types:
+          type: array
+          items:
+            type: string
+            enum: [temporal, behavioral, network]
+
+    PatternDetectionResult:
+      type: object
+      properties:
+        patterns:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              description:
+                type: string
+              confidence:
+                type: number
+              entities_involved:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+
+    RiskScore:
+      type: object
+      properties:
+        entity_id:
+          type: string
+          format: uuid
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        level:
+          type: string
+          enum: [low, medium, high, critical]
+        factors:
+          type: array
+          items:
+            type: object
+            properties:
+              factor:
+                type: string
+              weight:
+                type: number
+              contribution:
+                type: number
+        calculated_at:
+          type: string
+          format: date-time
+
+    WorkflowCreate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        trigger:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [manual, scheduled, event]
+            config:
+              type: object
+              additionalProperties: true
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              action:
+                type: string
+              parameters:
+                type: object
+                additionalProperties: true
+      required:
+        - name
+        - trigger
+        - steps
+
+    Workflow:
+      allOf:
+        - $ref: '#/components/schemas/WorkflowCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [active, inactive]
+            created_at:
+              type: string
+              format: date-time
+
+    WorkflowList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Workflow'
+        total:
+          type: integer
+
+    WorkflowExecution:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        workflow_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        started_at:
+          type: string
+          format: date-time
+
+    SearchResults:
+      type: object
+      properties:
+        query:
+          type: string
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              snippet:
+                type: string
+              relevance:
+                type: number
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    ReportCreate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        entity_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        include_relationships:
+          type: boolean
+          default: true
+        include_risk_analysis:
+          type: boolean
+          default: true
+        format:
+          type: string
+          enum: [pdf, docx, json]
+          default: pdf
+      required:
+        - title
+        - entity_ids
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, generating, completed, failed]
+        created_at:
+          type: string
+          format: date-time
+
+    ReportDetailed:
+      allOf:
+        - $ref: '#/components/schemas/Report'
+        - type: object
+          properties:
+            content:
+              type: object
+              additionalProperties: true
+            file_url:
+              type: string
+              format: uri
+
+    ReportList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
