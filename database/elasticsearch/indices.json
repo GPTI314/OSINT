@@ -1,0 +1,459 @@
+{
+  "comment": "Elasticsearch Indices Configuration for OSINT Platform",
+  "version": "1.0.0",
+  "indices": [
+    {
+      "name": "scraped_content",
+      "description": "Full-text search on scraped web content",
+      "settings": {
+        "number_of_shards": 3,
+        "number_of_replicas": 1,
+        "analysis": {
+          "analyzer": {
+            "html_analyzer": {
+              "type": "custom",
+              "tokenizer": "standard",
+              "char_filter": ["html_strip"],
+              "filter": ["lowercase", "stop", "snowball"]
+            },
+            "url_analyzer": {
+              "type": "custom",
+              "tokenizer": "uax_url_email",
+              "filter": ["lowercase"]
+            }
+          }
+        }
+      },
+      "mappings": {
+        "properties": {
+          "id": {
+            "type": "keyword"
+          },
+          "job_id": {
+            "type": "keyword"
+          },
+          "investigation_id": {
+            "type": "keyword"
+          },
+          "target_id": {
+            "type": "keyword"
+          },
+          "url": {
+            "type": "text",
+            "analyzer": "url_analyzer",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "title": {
+            "type": "text",
+            "analyzer": "standard",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "content": {
+            "type": "text",
+            "analyzer": "html_analyzer"
+          },
+          "content_hash": {
+            "type": "keyword"
+          },
+          "data_type": {
+            "type": "keyword"
+          },
+          "mime_type": {
+            "type": "keyword"
+          },
+          "status_code": {
+            "type": "integer"
+          },
+          "headers": {
+            "type": "object",
+            "enabled": false
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "extracted_data": {
+            "type": "object"
+          },
+          "links": {
+            "type": "keyword"
+          },
+          "images": {
+            "type": "keyword"
+          },
+          "created_at": {
+            "type": "date"
+          }
+        }
+      }
+    },
+    {
+      "name": "intelligence_data",
+      "description": "Searchable intelligence data from various sources",
+      "settings": {
+        "number_of_shards": 2,
+        "number_of_replicas": 1
+      },
+      "mappings": {
+        "properties": {
+          "id": {
+            "type": "keyword"
+          },
+          "investigation_id": {
+            "type": "keyword"
+          },
+          "target_id": {
+            "type": "keyword"
+          },
+          "data_type": {
+            "type": "keyword"
+          },
+          "source": {
+            "type": "keyword"
+          },
+          "target_value": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          },
+          "target_type": {
+            "type": "keyword"
+          },
+          "domain": {
+            "type": "keyword"
+          },
+          "ip_address": {
+            "type": "ip"
+          },
+          "email": {
+            "type": "keyword"
+          },
+          "phone": {
+            "type": "keyword"
+          },
+          "username": {
+            "type": "keyword"
+          },
+          "platform": {
+            "type": "keyword"
+          },
+          "raw_data": {
+            "type": "object",
+            "enabled": true
+          },
+          "parsed_data": {
+            "type": "object",
+            "enabled": true
+          },
+          "whois_data": {
+            "type": "object"
+          },
+          "dns_records": {
+            "type": "object"
+          },
+          "ssl_certificate": {
+            "type": "object"
+          },
+          "geolocation": {
+            "type": "geo_point"
+          },
+          "confidence_score": {
+            "type": "float"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "threat_intelligence": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "keyword"
+          },
+          "created_at": {
+            "type": "date"
+          },
+          "updated_at": {
+            "type": "date"
+          }
+        }
+      }
+    },
+    {
+      "name": "findings",
+      "description": "Searchable investigation findings and insights",
+      "settings": {
+        "number_of_shards": 2,
+        "number_of_replicas": 1
+      },
+      "mappings": {
+        "properties": {
+          "id": {
+            "type": "keyword"
+          },
+          "investigation_id": {
+            "type": "keyword"
+          },
+          "title": {
+            "type": "text",
+            "analyzer": "standard",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "description": {
+            "type": "text",
+            "analyzer": "standard"
+          },
+          "finding_type": {
+            "type": "keyword"
+          },
+          "severity": {
+            "type": "keyword"
+          },
+          "confidence": {
+            "type": "float"
+          },
+          "status": {
+            "type": "keyword"
+          },
+          "related_data": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "keyword"
+          },
+          "created_by": {
+            "type": "keyword"
+          },
+          "created_at": {
+            "type": "date"
+          },
+          "updated_at": {
+            "type": "date"
+          }
+        }
+      }
+    },
+    {
+      "name": "logs",
+      "description": "Centralized log search across all log types",
+      "settings": {
+        "number_of_shards": 3,
+        "number_of_replicas": 1,
+        "index": {
+          "lifecycle": {
+            "name": "logs_policy",
+            "rollover_alias": "logs"
+          }
+        }
+      },
+      "mappings": {
+        "properties": {
+          "timestamp": {
+            "type": "date"
+          },
+          "log_type": {
+            "type": "keyword"
+          },
+          "level": {
+            "type": "keyword"
+          },
+          "message": {
+            "type": "text",
+            "analyzer": "standard"
+          },
+          "source": {
+            "type": "keyword"
+          },
+          "component": {
+            "type": "keyword"
+          },
+          "investigation_id": {
+            "type": "keyword"
+          },
+          "job_id": {
+            "type": "keyword"
+          },
+          "session_id": {
+            "type": "keyword"
+          },
+          "user_id": {
+            "type": "keyword"
+          },
+          "url": {
+            "type": "keyword"
+          },
+          "status_code": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "object"
+          },
+          "context": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "keyword"
+          }
+        }
+      }
+    },
+    {
+      "name": "social_intelligence",
+      "description": "Social media intelligence data with full-text search",
+      "settings": {
+        "number_of_shards": 2,
+        "number_of_replicas": 1
+      },
+      "mappings": {
+        "properties": {
+          "id": {
+            "type": "keyword"
+          },
+          "investigation_id": {
+            "type": "keyword"
+          },
+          "platform": {
+            "type": "keyword"
+          },
+          "username": {
+            "type": "keyword"
+          },
+          "profile_url": {
+            "type": "keyword"
+          },
+          "profile_data": {
+            "properties": {
+              "name": {
+                "type": "text"
+              },
+              "bio": {
+                "type": "text"
+              },
+              "location": {
+                "type": "text"
+              },
+              "website": {
+                "type": "keyword"
+              }
+            }
+          },
+          "posts": {
+            "type": "nested",
+            "properties": {
+              "id": {
+                "type": "keyword"
+              },
+              "text": {
+                "type": "text"
+              },
+              "created_at": {
+                "type": "date"
+              },
+              "likes": {
+                "type": "integer"
+              },
+              "shares": {
+                "type": "integer"
+              },
+              "media": {
+                "type": "keyword"
+              }
+            }
+          },
+          "follower_count": {
+            "type": "integer"
+          },
+          "following_count": {
+            "type": "integer"
+          },
+          "collected_at": {
+            "type": "date"
+          }
+        }
+      }
+    },
+    {
+      "name": "domain_intelligence",
+      "description": "Domain and website intelligence data",
+      "settings": {
+        "number_of_shards": 2,
+        "number_of_replicas": 1
+      },
+      "mappings": {
+        "properties": {
+          "id": {
+            "type": "keyword"
+          },
+          "investigation_id": {
+            "type": "keyword"
+          },
+          "domain": {
+            "type": "keyword"
+          },
+          "subdomains": {
+            "type": "keyword"
+          },
+          "registrar": {
+            "type": "keyword"
+          },
+          "creation_date": {
+            "type": "date"
+          },
+          "expiration_date": {
+            "type": "date"
+          },
+          "whois_data": {
+            "type": "object"
+          },
+          "dns_records": {
+            "type": "nested",
+            "properties": {
+              "type": {
+                "type": "keyword"
+              },
+              "value": {
+                "type": "text"
+              }
+            }
+          },
+          "technologies": {
+            "type": "nested",
+            "properties": {
+              "name": {
+                "type": "keyword"
+              },
+              "version": {
+                "type": "keyword"
+              },
+              "category": {
+                "type": "keyword"
+              }
+            }
+          },
+          "threat_intelligence": {
+            "type": "object"
+          },
+          "collected_at": {
+            "type": "date"
+          }
+        }
+      }
+    }
+  ]
+}
