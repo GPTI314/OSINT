@@ -20,6 +20,7 @@ from .routes import (
     reports,
     users,
     auth as auth_routes,
+    lead_discovery,
 )
 
 
@@ -108,6 +109,11 @@ app.include_router(
     reports.router,
     prefix=f"{settings.api_prefix}/reports",
     tags=["Reports"]
+)
+
+app.include_router(
+    lead_discovery.router,
+    tags=["Lead Discovery"]
 )
 
 
