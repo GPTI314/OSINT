@@ -33,9 +33,17 @@ This deployment includes a complete production-ready stack with:
 - **Redis 7** - Cache & message broker (Port 6379)
 
 ### ELK Stack
-- **Elasticsearch 8.11** - Search & analytics (Port 9200, 9300)
-- **Logstash 8.11** - Log processing (Port 5000, 5044, 9600)
-- **Kibana 8.11** - Log visualization (Port 5601)
+- **Elasticsearch 7.17.15 LTS** - Search & analytics (Port 9200, 9300) ⭐ STABLE
+- **Logstash 7.17.15** - Log processing (Port 5000, 5044, 9600)
+- **Kibana 7.17.15** - Log visualization (Port 5601)
+
+**Why Elasticsearch 7.17 LTS?**
+- ✅ Long-term support (LTS) version
+- ✅ Production-tested and stable
+- ✅ Compatible with monitoring stack
+- ✅ Security patches and updates
+- ✅ Perfect for Windows Docker Desktop deployment
+- ⚠️ Note: ES 1.x-6.x are deprecated and unsupported (security risks)
 
 ### Monitoring Stack
 - **Prometheus** - Metrics collection (Port 9090)
@@ -156,22 +164,51 @@ notepad .env
 - `SECRET_KEY`
 - `GRAFANA_PASSWORD`
 
-### 3. Start Platform
+### 3. Start Platform (Enhanced with Elasticsearch Verification)
 
 ```powershell
-.\start-osint-platform.ps1
+.\start-osint-platform-enhanced.ps1
 ```
 
-This will:
+This enhanced startup script ensures **proper Elasticsearch initialization before Kibana**:
+
 1. ✓ Check Docker Desktop is running
 2. ✓ Verify Docker Compose is available
 3. ✓ Load environment variables
 4. ✓ Create required directories
-5. ✓ Pull Docker images
-6. ✓ Build and start all services
-7. ✓ Display access URLs
+5. ✓ Start database services (PostgreSQL, MongoDB, Redis)
+6. ✓ **Start Elasticsearch FIRST** (1-2 minutes initialization)
+7. ✓ **VERIFY Elasticsearch in browser** (http://localhost:9200)
+8. ✓ Wait for user confirmation
+9. ✓ Start Logstash (depends on Elasticsearch)
+10. ✓ Start Kibana (depends on Elasticsearch)
+11. ✓ Start monitoring services (Prometheus, Grafana)
+12. ✓ Start OSINT platform services
+13. ✓ Display service URLs and status
+
+**IMPORTANT Elasticsearch Verification Steps**:
+1. Script will start Elasticsearch first
+2. Browser will open to http://localhost:9200 automatically
+3. Verify you see JSON output with cluster information:
+   ```json
+   {
+     "name" : "osint-node-1",
+     "cluster_name" : "osint-cluster",
+     "version" : {
+       "number" : "7.17.15",
+       ...
+     },
+     "tagline" : "You Know, for Search"
+   }
+   ```
+4. Press ENTER in PowerShell to continue with Kibana startup
 
 **First startup takes 5-10 minutes** as images are downloaded and services initialize.
+
+**Alternative**: Use standard startup (no ES verification):
+```powershell
+.\start-osint-platform.ps1  # Original startup script
+```
 
 ### 4. Verify Deployment
 
@@ -218,20 +255,57 @@ REDIS_URL=redis://...
 
 Search and analytics engine for log data.
 
-**Configuration:**
-- Single node cluster
-- 2GB heap size
-- Security disabled (internal network only)
-- Data persisted in `elasticsearch_data` volume
+**Version**: 7.17.15 LTS (Long-Term Support)
 
-**Access:**
+**Configuration:**
+- Single node cluster (`osint-cluster`)
+- Node name: `osint-node-1`
+- 2GB heap size (configurable)
+- Security disabled (internal network only - safe for local deployment)
+- XPack monitoring enabled
+- Data persisted in `elasticsearch_data` volume
+- Enhanced health checks with proper startup timing
+
+**CRITICAL STARTUP SEQUENCE:**
+1. Elasticsearch MUST start first (60-90 seconds)
+2. Verify at http://localhost:9200 in browser
+3. Wait for cluster status "yellow" or "green"
+4. THEN Kibana can start (depends on ES health)
+5. Logstash starts after ES is healthy
+
+**Access & Verification:**
 ```powershell
-# Check cluster health
+# Check cluster health (IMPORTANT - Do this first!)
 curl http://localhost:9200/_cluster/health
+
+# Verify cluster info
+curl http://localhost:9200/
 
 # List indices
 curl http://localhost:9200/_cat/indices?v
+
+# Check nodes
+curl http://localhost:9200/_cat/nodes?v
 ```
+
+**Expected Output (when healthy):**
+```json
+{
+  "name" : "osint-node-1",
+  "cluster_name" : "osint-cluster",
+  "version" : {
+    "number" : "7.17.15",
+    "build_flavor" : "default",
+    "build_type" : "docker"
+  },
+  "tagline" : "You Know, for Search"
+}
+```
+
+**Health Check Status:**
+- 🟢 **Green**: All shards allocated (optimal)
+- 🟡 **Yellow**: Primary shards allocated, replicas pending (OK for single node)
+- 🔴 **Red**: Some primary shards not allocated (requires attention)
 
 ### Kibana (Port 5601)
 
