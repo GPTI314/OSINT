@@ -21,6 +21,7 @@ from .routes import (
     users,
     auth as auth_routes,
 )
+from .routes.credit_risk import router as credit_risk_router
 
 
 @asynccontextmanager
@@ -108,6 +109,12 @@ app.include_router(
     reports.router,
     prefix=f"{settings.api_prefix}/reports",
     tags=["Reports"]
+)
+
+app.include_router(
+    credit_risk_router,
+    prefix=f"{settings.api_prefix}",
+    tags=["Credit Risk"]
 )
 
 
